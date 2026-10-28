@@ -5,22 +5,12 @@ export interface Student {
     email:            string;
     isActive:         boolean;
     gender:           Gender;
-    favoriteSubjects: Subject[];
+    favoriteSubjects: string[];
     nickname:         string;
     grades:           Grade[];
 }
 
-export enum Subject {
-    Biology = "Biology",
-    Chemistry = "Chemistry",
-    Compunet1 = "Compunet1",
-    English = "English",
-    History = "History",
-    Math = "Math",
-    PE = "P.E",
-    Physics = "Physics",
-    Programming = "Programming",
-}
+
 
 export enum Gender {
     Female = "Female",
@@ -30,6 +20,6 @@ export enum Gender {
 
 export interface Grade {
     id:      string;
-    subject: Subject;
+    subject: string;
     grade:   number;
 }

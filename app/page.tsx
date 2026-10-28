@@ -1,61 +1,13 @@
+import { Navbar } from "@/components/Navbar";
+import { students } from "@/data/students.mock";
 
 export default function Home() {
-
-  const students = [
-    {
-      id:1,
-      name:"Gustavo",
-      age:35,
-      email:"gus@mail.com",
-      gender:"Male",
-      nickname:"ProfeGus",
-      status:true
-    },
-    {
-      id:2,
-      name:"Camilo",
-      age:20,
-      email:"camilo@mail.com",
-      gender:"Male",
-      nickname:"Cami",
-      status:true
-    },
-    {
-      id:3,
-      name:"Sebastian",
-      age:23,
-      email:"sebas@mail.com",
-      gender:"Male",
-      nickname:"Sebas",
-      status:false
-    },
-    {
-      id:4,
-      name:"Ximena",
-      age:24,
-      email:"xime@mail.com",
-      gender:"Male",
-      nickname:"Xime",
-      status:true
-    }
-  ]
 
   return (
 
     <div className="min-h-screen">
 
-      <nav className="flex items-center gap-6 bg-gray-900 px-6 py-4 text-slate-300">
-        <a href="#" className="mr-auto text-lg font-bold text-white">
-          Dash
-        <span className="text-blue-500">Students</span>
-        </a>
-        <a href="#student" className="hover:text-white">
-          Students
-        </a>
-        <a href="#about" className="hover:text-white">
-          About
-        </a>
-      </nav>
+     <Navbar/>
 
       <main className="mx-auto max-w-5xl space-y-12 p-6">
       
@@ -85,7 +37,7 @@ export default function Home() {
                   <td className="p-3">{student.gender}</td>
                   <td className="p-3">
                     {
-                      student.status ? 
+                      student.isActive ? 
                       ( <span className="rounded-full bg-green-100 px-2 
                       py-0.5 text-xs font-medium text-green-700">
                           Active
