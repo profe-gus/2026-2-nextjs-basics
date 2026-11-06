@@ -1,4 +1,4 @@
-'use client'
+
 import { Section } from '@/components/Section'
 import { StudentTable } from '@/components/students/StudentTable'
 import { Student } from '@/interfaces/student.interface';
@@ -8,15 +8,14 @@ import { Suspense } from 'react';
 import { Paginator } from '../../components/Paginator';
 import { StudentSearch } from '../../components/students/StudentSearch';
 
-const PAGE_SIZE = 5;
-const MAX_STUDENTS = 50;
+const PAGE_SIZE = 6;
 
 
 async function StudentResults({searchParams}: Pick<PageProps<"/students">, "searchParams">){
   const {q, page} = await searchParams;
   const term = typeof q === "string" ? q: "";
 
-  const apiStudents = await fetch(`${process.env.API_URL}/student?limit=${MAX_STUDENTS}`);
+  const apiStudents = await fetch(`${process.env.API_URL}/student`);
   if(!apiStudents.ok) throw new Error(`Students API responses ${apiStudents.status}`)
   const studentList: Student[] = await apiStudents.json(); 
   await connection();

@@ -38,7 +38,7 @@ export const Paginator = ( {basePath, page, totalPages, params = {}}: PaginatorP
             page > 1 ? (
                 <Link
                 href={hrefFor(basePath, page -1, params)}
-                aria-label='Previos page'
+                aria-label='Previous page'
                 className={linkClasses}
                 >
                     {"<"}
@@ -72,7 +72,7 @@ export const Paginator = ( {basePath, page, totalPages, params = {}}: PaginatorP
             page < totalPages ? (
                 <Link
                 href={hrefFor(basePath, page + 1, params)}
-                aria-label='Previos page'
+                aria-label='Next page'
                 className={linkClasses}
                 >
                     {">"}
