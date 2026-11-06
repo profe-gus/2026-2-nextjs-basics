@@ -1,19 +1,64 @@
+'use client'
 import { Section } from '@/components/Section'
 import { StudentTable } from '@/components/students/StudentTable'
 import { Student } from '@/interfaces/student.interface';
+import { filterStudents, paginate } from '@/lib/student-list';
+import { connection } from 'next/server';
+import { Suspense } from 'react';
+import { Paginator } from '../../components/Paginator';
+import { StudentSearch } from '../../components/students/StudentSearch';
+
+const PAGE_SIZE = 5;
+const MAX_STUDENTS = 50;
 
 
-const apiStudents = await fetch(`${process.env.API_URL}/student`);
-const students: Student[] = await apiStudents.json(); 
-console.log("🚀 ~ :8 ~ students:", students)
+async function StudentResults({searchParams}: Pick<PageProps<"/students">, "searchParams">){
+  const {q, page} = await searchParams;
+  const term = typeof q === "string" ? q: "";
+
+  const apiStudents = await fetch(`${process.env.API_URL}/student?limit=${MAX_STUDENTS}`);
+  if(!apiStudents.ok) throw new Error(`Students API responses ${apiStudents.status}`)
+  const studentList: Student[] = await apiStudents.json(); 
+  await connection();
+
+  const refinedList = filterStudents(studentList, term);
+  const {students, current, totalPages, total} = paginate(refinedList, Number(page) || 1, PAGE_SIZE);
+
+  return (
+  <>
+    <p className='text-xs text-gray-500'>Actualizado el {new Date().toISOString()}</p>
+    {
+      students.length > 0 ? (
+        <StudentTable students={students}/>
+      ): (
+        <p className='rounded-lg bg-white p-6 text-center text-slate-500'>No se encontraron estudiantes con {term}</p>
+      )}
+      <footer className='flex flex-wrap items-center justify-between gap-3'>
+        <p className='text-sm text-slate-500'>{total} estudiantes</p>
+        <Paginator
+        basePath='/students'
+        page={current}
+        totalPages={totalPages}
+        params={term ? {q : term}: {}}
+        />
+      </footer>
+  </>
+    )
+  
+}
 
 
-export default function StudentPage() {
+export default function StudentPage({searchParams}: PageProps<"/students">) {
 
 
   return (
-     <Section id="students" title="Students">
-              <StudentTable students={students}/>
+     <Section id="students" title="Estudiantes">
+      <Suspense>
+        <StudentSearch/>
+      </Suspense>
+      <Suspense fallback={<p className='text-2xl text-gray-500'>Cargando estudiantes...</p>}>
+              <StudentResults searchParams={searchParams}/>
+      </Suspense>
       </Section>
   )
 }
