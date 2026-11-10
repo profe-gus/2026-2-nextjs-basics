@@ -35,16 +35,20 @@ async function StudentDetail({params} : Pick<PageProps<"/students/[id]">, "param
     <article className='space-y-3'>
         <h1 className='text-2xl font-bold'>{student.name}</h1>
         <p>
-            {student.email} . @{student.nickname}
+            Email: {student.email}
+        </p>
+        <p>
+            Nickname: @{student.nickname}
         </p>
         <ul>
+            <span className='font-bold text-xl'>Materias:</span>
             {student.grades?.map((grade)=>(
                 <li key={grade.subject}>
                     {grade.subject}: {grade.grade}
                 </li>
             ))}
         </ul>
-        <p className='text-xs text-gray-500'> Generado {generatedAt}</p>
+        <p className='text-xs text-gray-500'> Generado el {generatedAt}</p>
     </article>
   )
 }
