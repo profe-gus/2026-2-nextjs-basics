@@ -5,8 +5,9 @@ import { Student } from '@/interfaces/student.interface';
 import { filterStudents, paginate } from '@/lib/student-list';
 import { connection } from 'next/server';
 import { Suspense } from 'react';
-import { Paginator } from '../../components/Paginator';
-import { StudentSearch } from '../../components/students/StudentSearch';
+import { getStudents } from '@/lib/student-api';
+import { Paginator } from '@/components/Paginator';
+import { StudentSearch } from '@/components/students/StudentSearch';
 
 const PAGE_SIZE = 6;
 
@@ -15,9 +16,7 @@ async function StudentResults({searchParams}: Pick<PageProps<"/students">, "sear
   const {q, page} = await searchParams;
   const term = typeof q === "string" ? q: "";
 
-  const apiStudents = await fetch(`${process.env.API_URL}/student`);
-  if(!apiStudents.ok) throw new Error(`Students API responses ${apiStudents.status}`)
-  const studentList: Student[] = await apiStudents.json(); 
+  const studentList: Student[] = await getStudents(); 
   await connection();
 
   const refinedList = filterStudents(studentList, term);

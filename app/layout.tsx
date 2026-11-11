@@ -21,10 +21,11 @@ export const metadata: Metadata = {
 
 const navLinks : NavLinks[] = [
   { 
-    href: "students", 
+    href: "/students", 
     title: "Students"
   },
-  { href: "about", title: "About"}
+  { href: "/counter", title: "Counter"},
+  { href: "/about", title: "About"}
 ]
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
