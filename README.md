@@ -29,46 +29,61 @@ La API de estudiantes (NestJS) debe estar corriendo, por ejemplo en `http://loca
 
 | Variable | Alcance | Para qué sirve |
 |----------|---------|----------------|
-| `API_URL` | Solo servidor | URL base de la API NestJS, p. ej. `http://localhost:9000/api` |
+| `API_URL` | Solo servidor | URL base de la API NestJS, p. ej. `http://localhost:9000/api` (estudiantes y auth) |
 
 ## Rutas
 
 | Ruta | Archivo | Contenido |
 |------|---------|-----------|
-| `/` | `app/(public)/page.tsx` | Zona pública (placeholder "Zona publica") |
+| `/` | `app/(public)/page.tsx` | Home pública: hero con la marca, botón "Ir a estudiantes" y la sección "Que vamos a construir?" |
+| `/login` | `app/(auth)/login/page.tsx` | Formulario de login (`LoginForm`). Acepta `?from=` |
 | `/students` | `app/(dashboard)/students/page.tsx` | Tabla de estudiantes con búsqueda y paginación (`GET {API_URL}/student`). Acepta `?q=texto&page=2` |
 | `/students/[id]` | `app/(dashboard)/students/[id]/page.tsx` | Detalle de un estudiante (`GET {API_URL}/student/{id}`), con caché y pre-render por `generateStaticParams` |
-| `/about` | `app/about/page.tsx` | Sección "About this project" |
+| `/about` | `app/(public)/about/page.tsx` | Sección "About this project" |
 | `/counter` | `app/(dashboard)/counter/page.tsx` | Contador interactivo (Client Component) |
 
 Regla de oro del App Router: **la carpeta define la URL, el archivo define el rol** (`page.tsx`, `layout.tsx`, `route.ts`).
 
-### Route groups: `(public)` y `(dashboard)`
+### Route groups: `(public)`, `(auth)` y `(dashboard)`
 
-Las carpetas entre paréntesis son *route groups*: **no aparecen en la URL**, solo sirven para agrupar rutas y darles un layout propio.
+Las carpetas entre paréntesis son *route groups*: **no aparecen en la URL**, solo sirven para agrupar rutas y darles un layout propio. Cada grupo tiene su layout, y el layout raíz (`app/layout.tsx`) solo define `<html>`, fuentes y metadata.
 
-- `(dashboard)` tiene su `layout.tsx`, que agrega un `<h1>Dashboard</h1>` encima de `/students`, `/students/[id]` y `/counter`.
-- `(public)` agrupa la home (`/`), sin layout propio.
-- `about` quedó fuera de ambos grupos: solo usa el layout raíz.
+- `(public)` agrupa `/` y `/about`. Su layout pinta el `Navbar` (links Home, Students, Counter, About) y un `<main>` centrado.
+- `(auth)` agrupa `/login`. Su layout muestra la marca y una tarjeta centrada donde se renderiza el formulario.
+- `(dashboard)` agrupa `/students`, `/students/[id]` y `/counter`. Su layout es un `flex` de pantalla completa con `Sidebar` a la izquierda (barra superior compacta en móvil) y el contenido a la derecha.
 
 ## Estructura del proyecto
 
 ```
 app/
-  layout.tsx            Layout raíz: Navbar + <main> que envuelve todas las páginas
+  layout.tsx            Layout raíz: <html>, fuentes y metadata
   (public)/
+    layout.tsx          Navbar + <main>
     page.tsx            /
+    about/page.tsx      /about
+  (auth)/
+    layout.tsx          Tarjeta centrada con la marca
+    actions.ts          Server Actions: loginAction, registerAction, logoutAction
+    login/page.tsx      /login
   (dashboard)/
-    layout.tsx          Layout del dashboard (título "Dashboard")
+    layout.tsx          Sidebar + contenido
     students/page.tsx   /students
     students/[id]/page.tsx  /students/:id
     counter/page.tsx    /counter
-  about/page.tsx        /about
 components/
   Brand.tsx             Marca "Dash" + "Students"
   Navbar.tsx            Client Component (usePathname para resaltar el link activo)
   Section.tsx           Contenedor con id, título y children
   Paginator.tsx         Paginador por links (<, números con "...", >); conserva los params
+  auth/
+    LoginForm.tsx       Client Component: formulario ligado a loginAction con useActionState
+  form-ui/
+    Input.tsx           Input con label
+    SubmitButton.tsx    Botón de envío con estado pending
+  sidebar/
+    Sidebar.tsx         Menú del dashboard (barra superior en móvil, aside en md+)
+    SidebarMenu.tsx     Client Component: marca el item activo con usePathname
+    SidebarMenuItem.tsx Item individual del menú
   students/
     StudentTable.tsx    Tabla; recibe students por props
     StudentRow.tsx      Fila de un estudiante
@@ -77,11 +92,14 @@ components/
 lib/
   api.ts                Instancia de axios (baseURL = API_URL) y clase ApiError; solo servidor
   student-api.ts        getStudents y getStudent: llamadas a la API con caché
+  auth-api.ts           login y register contra la API (/user/auth, /user/signup); solo servidor
+  session.ts            Cookie de sesión: createSession, deleteSession, getToken; solo servidor
   student-list.ts       Funciones puras: filterStudents, paginate, getPageNumbers
 data/students.mock.ts   Mock tipado de estudiantes
 interfaces/
   student.interface.ts  Tipo Student
   nav-links.interface.ts  Tipo NavLinks ({ href, title })
+  menu-item.interface.ts  Tipo MenuItem ({ path, icon, title, subtitle })
 ```
 
 ## Cómo está construido
@@ -103,7 +121,7 @@ interfaces/
 En este repo:
 
 - **Server Components:** `StudentTable`, `StudentRow`, `StudentBadge`, `Section`, `Brand`, `Paginator` y el layout. `app/(dashboard)/students/page.tsx` también lo es: llama a `getStudents()` y usa `connection()`, por eso no lleva `"use client"`.
-- **Client Components:** `Navbar` (necesita `usePathname`), `StudentSearch` (necesita `useRouter`, `useSearchParams` y `onChange`) y `app/(dashboard)/counter/page.tsx` (necesita `useState` y `onClick`).
+- **Client Components:** `Navbar` y `SidebarMenu` (necesitan `usePathname`), `LoginForm` (necesita `useActionState`), `StudentSearch` (necesita `useRouter`, `useSearchParams` y `onChange`) y `app/(dashboard)/counter/page.tsx` (necesita `useState` y `onClick`).
 
 `"use client"` no significa "solo se renderiza en el cliente": significa "desde aquí hacia abajo el código también viaja al navegador". Por eso solo se marca lo que lo necesita, y no el layout completo.
 
@@ -116,6 +134,19 @@ El estado vive en la URL (`/students?q=ana&page=2`), no en `useState`: así se p
 3. `Paginator` genera los links con `Link` y conserva `q` en cada uno.
 
 Hay dos `Suspense`: uno para el buscador (usa `useSearchParams`) y otro con el fallback "Cargando estudiantes..." para los resultados. El filtrado y la paginación ocurren en memoria sobre lo que devuelva la API, no en la API.
+
+## Autenticación: login con JWT
+
+Flujo actual, de punta a punta:
+
+1. `/login` renderiza `LoginForm` (Client Component) dentro de un `Suspense`, porque lee `searchParams` para el `?from=`.
+2. El form usa `useActionState(loginAction, ...)`: `loginAction` (`app/(auth)/actions.ts`, `"use server"`) normaliza el email, exige contraseña de al menos 8 caracteres y llama a `login()` de `lib/auth-api.ts` (`POST {API_URL}/user/auth`).
+3. Si la API responde con `{ token }`, `createSession` (`lib/session.ts`) lo guarda en la cookie `token`: `httpOnly`, `sameSite: "lax"`, `path: "/"`, 1 hora. Luego `redirect("/students")`.
+4. Si falla, la action devuelve `{ error }` (credenciales incorrectas si es `ApiError`, error de servidor en otro caso) y el form lo muestra en un `<p role="alert">`. Un email inválido o contraseña corta se rechaza antes de llamar a la API y conserva el email escrito.
+
+`registerAction` (`POST /user/signup`) y `logoutAction` (borra la cookie y va a `/login`) ya existen en `actions.ts`.
+
+> **Pendiente (no existe aún):** la página `/register` (el link "Registrate" del login apunta a ella), un botón que invoque `logoutAction`, la protección de rutas del dashboard, y enviar el token en `Authorization` desde `lib/api.ts` (`getToken()` todavía no se usa). El campo oculto `from` se envía en el form pero `loginAction` aún no lo lee: siempre redirige a `/students`.
 
 ## Capa de acceso a la API: `lib/api.ts` y `lib/student-api.ts`
 
