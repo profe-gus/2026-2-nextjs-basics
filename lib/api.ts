@@ -19,6 +19,14 @@ export const api = axios.create({
 
 api.interceptors.response.use(
     (response) => response,
-    (error) => Promise.reject(error)
+    (error) => {
+        if (isAxiosError(error) && error.response) {
+            // NestJS returns `message` as a string or an array of validation messages
+            const raw = error.response.data?.message;
+            const message = Array.isArray(raw) ? raw.join(", ") : raw ?? error.message;
+            return Promise.reject(new ApiError(error.response.status, message));
+        }
+        return Promise.reject(error);
+    }
 )
 

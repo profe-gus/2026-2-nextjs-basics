@@ -21,6 +21,7 @@ La API de estudiantes (NestJS) debe estar corriendo, por ejemplo en `http://loca
 | Estilos | Tailwind CSS 4 |
 | Lenguaje | TypeScript, alias de importación `@/*` |
 | Cliente HTTP | axios (solo servidor, ver `lib/api.ts`) |
+| Estado en cliente | zustand (solo el usuario de la sesión, ver `store/session.store.ts`) |
 | Gestor de paquetes | pnpm |
 
 > `next.config.ts` tiene activados `cacheComponents` y `partialPrefetching`. No es el Next.js de los tutoriales antiguos: consulta `node_modules/next/dist/docs/` antes de fiarte de la memoria.
@@ -37,10 +38,14 @@ La API de estudiantes (NestJS) debe estar corriendo, por ejemplo en `http://loca
 |------|---------|-----------|
 | `/` | `app/(public)/page.tsx` | Home pública: hero con la marca, botón "Ir a estudiantes" y la sección "Que vamos a construir?" |
 | `/login` | `app/(auth)/login/page.tsx` | Formulario de login (`LoginForm`). Acepta `?from=` |
-| `/students` | `app/(dashboard)/students/page.tsx` | Tabla de estudiantes con búsqueda y paginación (`GET {API_URL}/student`). Acepta `?q=texto&page=2` |
-| `/students/[id]` | `app/(dashboard)/students/[id]/page.tsx` | Detalle de un estudiante (`GET {API_URL}/student/{id}`), con caché y pre-render por `generateStaticParams` |
+| `/register` | `app/(auth)/register/page.tsx` | Formulario de registro (`RegisterForm`) |
+| `/students` | `app/(dashboard)/students/page.tsx` | Tabla de estudiantes con búsqueda y paginación (`GET {API_URL}/student`). Acepta `?q=texto&page=2`. **Protegida** |
+| `/students/new` | `app/(dashboard)/students/new/page.tsx` | Formulario para crear un estudiante (`StudentForm`). **Protegida** |
+| `/students/[id]` | `app/(dashboard)/students/[id]/page.tsx` | Detalle de un estudiante (`GET {API_URL}/student/{id}`), con caché y pre-render por `generateStaticParams`. **Protegida** |
 | `/about` | `app/(public)/about/page.tsx` | Sección "About this project" |
-| `/counter` | `app/(dashboard)/counter/page.tsx` | Contador interactivo (Client Component) |
+| `/counter` | `app/(dashboard)/counter/page.tsx` | Contador interactivo (Client Component). **Protegida** |
+
+"Protegida" significa que `proxy.ts` redirige a `/login` si no hay cookie de sesión (ver [Protección de rutas](#protección-de-rutas-proxyts)).
 
 Regla de oro del App Router: **la carpeta define la URL, el archivo define el rol** (`page.tsx`, `layout.tsx`, `route.ts`).
 
@@ -49,8 +54,8 @@ Regla de oro del App Router: **la carpeta define la URL, el archivo define el ro
 Las carpetas entre paréntesis son *route groups*: **no aparecen en la URL**, solo sirven para agrupar rutas y darles un layout propio. Cada grupo tiene su layout, y el layout raíz (`app/layout.tsx`) solo define `<html>`, fuentes y metadata.
 
 - `(public)` agrupa `/` y `/about`. Su layout pinta el `Navbar` (links Home, Students, Counter, About) y un `<main>` centrado.
-- `(auth)` agrupa `/login`. Su layout muestra la marca y una tarjeta centrada donde se renderiza el formulario.
-- `(dashboard)` agrupa `/students`, `/students/[id]` y `/counter`. Su layout es un `flex` de pantalla completa con `Sidebar` a la izquierda (barra superior compacta en móvil) y el contenido a la derecha.
+- `(auth)` agrupa `/login` y `/register`. Su layout muestra la marca y una tarjeta centrada donde se renderiza el formulario.
+- `(dashboard)` agrupa `/students`, `/students/new`, `/students/[id]` y `/counter`. Su layout es un `flex` de pantalla completa con `Sidebar` a la izquierda (barra superior compacta en móvil) y el contenido a la derecha. También monta `SessionLoader` dentro de un `Suspense` para sincronizar el usuario con el store del cliente.
 
 ## Estructura del proyecto
 
@@ -65,11 +70,15 @@ app/
     layout.tsx          Tarjeta centrada con la marca
     actions.ts          Server Actions: loginAction, registerAction, logoutAction
     login/page.tsx      /login
+    register/page.tsx   /register
   (dashboard)/
-    layout.tsx          Sidebar + contenido
+    layout.tsx          Sidebar + contenido + SessionLoader
     students/page.tsx   /students
+    students/new/page.tsx     /students/new
+    students/new/actions.ts   Server Action: createStudentAction
     students/[id]/page.tsx  /students/:id
     counter/page.tsx    /counter
+proxy.ts                Protección de rutas por cookie (antes "middleware")
 components/
   Brand.tsx             Marca "Dash" + "Students"
   Navbar.tsx            Client Component (usePathname para resaltar el link activo)
@@ -77,6 +86,12 @@ components/
   Paginator.tsx         Paginador por links (<, números con "...", >); conserva los params
   auth/
     LoginForm.tsx       Client Component: formulario ligado a loginAction con useActionState
+    RegisterForm.tsx    Client Component: formulario ligado a registerAction
+  session/
+    SessionLoader.tsx   Server Component async: lee la sesión (getUserSession)
+    SessionSync.tsx     Client Component: copia el usuario al store con useEffect
+    UserBadge.tsx       Client Component: avatar y email del usuario (lee el store)
+    LogOutButton.tsx    Client Component: form ligado a logoutAction; limpia el store
   form-ui/
     Input.tsx           Input con label
     SubmitButton.tsx    Botón de envío con estado pending
@@ -89,12 +104,16 @@ components/
     StudentRow.tsx      Fila de un estudiante
     StudentBadge.tsx    Badge Active / Inactive
     StudentSearch.tsx   Client Component: input de búsqueda con debounce que escribe `?q=`
+    StudentForm.tsx     Client Component: formulario de alta, ligado a createStudentAction
 lib/
   api.ts                Instancia de axios (baseURL = API_URL) y clase ApiError; solo servidor
   student-api.ts        getStudents y getStudent: llamadas a la API con caché
   auth-api.ts           login y register contra la API (/user/auth, /user/signup); solo servidor
-  session.ts            Cookie de sesión: createSession, deleteSession, getToken; solo servidor
+  session.ts            Cookie de sesión: createSession, deleteSession, getToken, getUserSession; solo servidor
+  jwt.ts                decodeJwtPayload (sin verificar firma) y tipos JwtPayload / SessionUser
+  safe-redirect.ts      safeRedirectPath: evita open redirects en `?from=`
   student-list.ts       Funciones puras: filterStudents, paginate, getPageNumbers
+store/session.store.ts  Store de zustand con el usuario de la sesión (solo cliente)
 data/students.mock.ts   Mock tipado de estudiantes
 interfaces/
   student.interface.ts  Tipo Student
@@ -121,7 +140,7 @@ interfaces/
 En este repo:
 
 - **Server Components:** `StudentTable`, `StudentRow`, `StudentBadge`, `Section`, `Brand`, `Paginator` y el layout. `app/(dashboard)/students/page.tsx` también lo es: llama a `getStudents()` y usa `connection()`, por eso no lleva `"use client"`.
-- **Client Components:** `Navbar` y `SidebarMenu` (necesitan `usePathname`), `LoginForm` (necesita `useActionState`), `StudentSearch` (necesita `useRouter`, `useSearchParams` y `onChange`) y `app/(dashboard)/counter/page.tsx` (necesita `useState` y `onClick`).
+- **Client Components:** `Navbar` y `SidebarMenu` (necesitan `usePathname`), `LoginForm`, `RegisterForm` y `StudentForm` (necesitan `useActionState`), `SessionSync`, `UserBadge` y `LogOutButton` (necesitan el store de zustand), `StudentSearch` (necesita `useRouter`, `useSearchParams` y `onChange`) y `app/(dashboard)/counter/page.tsx` (necesita `useState` y `onClick`).
 
 `"use client"` no significa "solo se renderiza en el cliente": significa "desde aquí hacia abajo el código también viaja al navegador". Por eso solo se marca lo que lo necesita, y no el layout completo.
 
@@ -135,18 +154,57 @@ El estado vive en la URL (`/students?q=ana&page=2`), no en `useState`: así se p
 
 Hay dos `Suspense`: uno para el buscador (usa `useSearchParams`) y otro con el fallback "Cargando estudiantes..." para los resultados. El filtrado y la paginación ocurren en memoria sobre lo que devuelva la API, no en la API.
 
-## Autenticación: login con JWT
+## Autenticación y sesión (JWT)
 
-Flujo actual, de punta a punta:
+El token JWT que devuelve la API vive en una cookie `httpOnly`. Tres piezas lo usan: las Server Actions (escriben/borran la cookie), `proxy.ts` (protege rutas) y el store de zustand (muestra el usuario en la UI).
 
-1. `/login` renderiza `LoginForm` (Client Component) dentro de un `Suspense`, porque lee `searchParams` para el `?from=`.
-2. El form usa `useActionState(loginAction, ...)`: `loginAction` (`app/(auth)/actions.ts`, `"use server"`) normaliza el email, exige contraseña de al menos 8 caracteres y llama a `login()` de `lib/auth-api.ts` (`POST {API_URL}/user/auth`).
-3. Si la API responde con `{ token }`, `createSession` (`lib/session.ts`) lo guarda en la cookie `token`: `httpOnly`, `sameSite: "lax"`, `path: "/"`, 1 hora. Luego `redirect("/students")`.
-4. Si falla, la action devuelve `{ error }` (credenciales incorrectas si es `ApiError`, error de servidor en otro caso) y el form lo muestra en un `<p role="alert">`. Un email inválido o contraseña corta se rechaza antes de llamar a la API y conserva el email escrito.
+### Login y registro
 
-`registerAction` (`POST /user/signup`) y `logoutAction` (borra la cookie y va a `/login`) ya existen en `actions.ts`.
+1. `/login` renderiza `LoginForm` (Client Component) dentro de un `Suspense`, porque lee `searchParams` para el `?from=`. `/register` renderiza `RegisterForm` (nombre completo, correo, contraseña de 8 a 16 caracteres).
+2. Cada form usa `useActionState`: `loginAction` y `registerAction` (`app/(auth)/actions.ts`, `"use server"`).
+   - `loginAction` normaliza el email, exige contraseña de al menos 8 caracteres y llama a `login()` (`POST {API_URL}/user/auth`).
+   - `registerAction` llama a `register()` (`POST {API_URL}/user/signup`).
+3. Si la API responde con `{ token }`, `createSession` (`lib/session.ts`) lo guarda en la cookie `token`: `httpOnly`, `sameSite: "lax"`, `path: "/"`, 1 hora.
+4. Redirección: `loginAction` va a `safeRedirectPath(formData.get("from"))`; `registerAction` siempre va a `/students`.
+5. Si falla, la action devuelve `{ error }` (credenciales incorrectas si es `ApiError`, error de servidor en otro caso) y el form lo muestra en un `<p role="alert">`. Un email inválido o contraseña corta se rechaza antes de llamar a la API y conserva el email escrito.
+6. `logoutAction` borra la cookie y redirige a `/login`. Lo invoca `LogOutButton` desde el `Sidebar`.
 
-> **Pendiente (no existe aún):** la página `/register` (el link "Registrate" del login apunta a ella), un botón que invoque `logoutAction`, la protección de rutas del dashboard, y enviar el token en `Authorization` desde `lib/api.ts` (`getToken()` todavía no se usa). El campo oculto `from` se envía en el form pero `loginAction` aún no lo lee: siempre redirige a `/students`.
+### Protección de rutas: `proxy.ts`
+
+En esta versión de Next el antiguo `middleware` se llama `proxy`. Se ejecuta antes de renderizar, solo para las rutas del `matcher` (`/students/:path*`, `/counter`, `/login`, `/register`).
+
+| Situación | Resultado |
+|-----------|-----------|
+| Sin cookie `token` en `/students/**` o `/counter` | Redirige a `/login?from=<ruta original + query>` |
+| Con cookie `token` en `/login` o `/register` | Redirige a `/students` |
+| Cualquier otro caso | `NextResponse.next()` |
+
+> Ojo: `proxy.ts` solo comprueba que **exista** la cookie, no que el token sea válido ni que no haya expirado. Es un filtro rápido de UX, no una barrera de seguridad: la API sigue siendo quien valida el token.
+
+### `?from=` y `safeRedirectPath`
+
+`lib/safe-redirect.ts` evita *open redirects*. Solo acepta valores que empiecen con `/`, los resuelve contra un origen falso (`http://internal.invalid`) y, si el origen cambia (por ejemplo `//evil.com`), devuelve el fallback `/students`. Si pasa, devuelve `pathname + search + hash`.
+
+### Usuario de la sesión en el cliente
+
+La cookie es `httpOnly`, así que el cliente no puede leerla. Para mostrar el email en `UserBadge`:
+
+1. `SessionLoader` (Server Component async, dentro de `Suspense` en el layout del dashboard) llama a `getUserSession()`.
+2. `getUserSession()` lee la cookie, decodifica el payload con `decodeJwtPayload` (`lib/jwt.ts`, valida que existan `id`, `email` y `exp`) y devuelve `{ id, email }`, o `null` si no hay token o `exp` ya pasó. Usa `connection()` para que la comprobación de expiración ocurra por request.
+3. `SessionSync` (cliente) copia ese usuario al store con `setUser` dentro de un `useEffect`.
+4. `UserBadge` lee `useSessionStore((s) => s.user)` y pinta la inicial y el email. `LogOutButton` limpia el store con `setUser(null)` al enviar.
+
+> `decodeJwtPayload` **no verifica la firma**: solo decodifica base64. Sirve para pintar la UI, nunca para decidir permisos.
+
+### Crear estudiantes: `/students/new`
+
+1. `StudentForm` (cliente) usa `useActionState(createStudentAction, ...)`.
+2. `createStudentAction` (`app/(dashboard)/students/new/actions.ts`) lee el token con `getToken()`; sin token redirige a `/login?from=/students/new`.
+3. Arma un `NewStudent` (`Omit<Student, "id" | "nickname" | "grades">`) y llama a `createStudent(student, token)` (`POST {API_URL}/student` con `Authorization: Bearer <token>`).
+4. Errores: `401` redirige al login; `403` devuelve "Solo los profesores pueden crear estudiantes"; el resto muestra el mensaje del `ApiError` o un error genérico.
+5. Si sale bien: `updateTag("students")` invalida el caché del listado y redirige a `/students/{id}`.
+
+> **Pendiente:** el token no se adjunta automáticamente en `lib/api.ts`: `createStudent` lo envía a mano en el header `Authorization`.
 
 ## Capa de acceso a la API: `lib/api.ts` y `lib/student-api.ts`
 
@@ -156,8 +214,8 @@ Las páginas ya no llaman a `fetch` directamente: pasan por esta capa.
 
 - `import "server-only"`: si un Client Component lo importa, el build falla. Así `API_URL` no viaja al navegador.
 - `api`: instancia de axios con `baseURL: process.env.API_URL`, header `Content-Type: application/json` y `timeout` de 10 s.
-- `ApiError(status, message)`: error propio con el status HTTP (definido, aún sin usar).
-- El interceptor de respuesta hoy es un passthrough; es el lugar para mapear errores a `ApiError`.
+- `ApiError(status, message)`: error propio con el status HTTP (lo lanza el interceptor de respuesta).
+- El interceptor de respuesta convierte los errores HTTP de axios en `ApiError(status, message)`. Si el `message` de NestJS es un arreglo (validaciones), lo une con comas. Los errores sin respuesta (timeout, red caída) pasan tal cual.
 
 ### `lib/student-api.ts`
 
@@ -167,6 +225,8 @@ Ambas funciones usan `"use cache"` + `cacheLife("minutes")` (requiere `cacheComp
 |---------|---------|--------------|
 | `getStudents(limit = 1000)` | `GET /student?limit={limit}` | `students` |
 | `getStudent(term)` | `GET /student/{term}` (con `encodeURIComponent`) | `student` |
+
+`createStudent(student, token)` no usa caché: hace `POST /student` con el header `Authorization: Bearer`. Exporta también el tipo `NewStudent`.
 
 También reexporta los tipos `Student` y `Grade`.
 
@@ -285,8 +345,6 @@ Pide la lista con `getStudents()` y devuelve `[{ id }, ...]`. Next usa esa lista
 ### `generateMetadata({ params })`
 
 Busca el estudiante (reusa `getStudentById`, que está en caché) y devuelve `title` (nombre) y `description` ("Profile of ...").
-
-> **Bug conocido:** la función no tiene `export`, así que Next la ignora y el título de la pestaña no cambia al nombre del estudiante. Basta con `export async function generateMetadata`.
 
 ### `StudentDetail` y `StudentDetailPage`
 

@@ -31,8 +31,8 @@ export const StudentForm = () => {
         required
         />
         <label htmlFor='gender' className='flex flex-col gap-1 text-sm'>
-            <select name="gender" id="gender" className='rounder border border-gray-500 bg-slate-200 px-3 py-2 text-sm'>
-                <span className='opacity-80'>Como te identificas?</span>
+            <span className='opacity-80'>Como te identificas?</span>
+            <select name="gender" id="gender" className='rounded border border-gray-500 bg-slate-200 px-3 py-2 text-sm'>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>

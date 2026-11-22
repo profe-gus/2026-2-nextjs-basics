@@ -1,13 +1,10 @@
-import { students } from "@/data/students.mock";
 import { MenuItem } from "@/interfaces/menu-item.interface";
-import { all } from "axios";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Brand } from "../Brand";
 import { SidebarMenu } from "./SidebarMenu";
 import { SidebarMenuItem } from "./SidebarMenuItem";
 import { IoPeopleOutline, IoCheckmarkCircleOutline, IoPersonAddOutline } from "react-icons/io5";
-import { logoutAction } from "@/app/(auth)/actions";
 import { LogOutButton } from "../session/LogOutButton";
 import { UserBadge } from '../session/UserBadge';
 

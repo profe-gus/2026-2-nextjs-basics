@@ -20,7 +20,7 @@ export async function  generateStaticParams(){
     return students.map((student) => ({ id: student.id}));
 }
 
-async function generateMetadata({params} : PageProps<"/students/[id]">): Promise<Metadata>{
+export async function generateMetadata({params} : PageProps<"/students/[id]">): Promise<Metadata>{
  const {id} = await params;
  const {student} = await getStudentById(id);
  return {title: student.name, description: `Profile of ${student.name}`}

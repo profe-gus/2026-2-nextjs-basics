@@ -9,7 +9,7 @@ export function safeRedirectPath(value: unknown, fallback="/students"){
         if(url.origin !== BASE) return fallback;
 
         return url.pathname + url.search + url.hash;
-    }catch(error){
+    }catch{
         return fallback
     }
 }

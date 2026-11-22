@@ -21,7 +21,7 @@ export async function createStudentAction(
         email : String(formData.get("email") ?? "").trim(),
         gender : String(formData.get("gender") ?? "") as NewStudent["gender"],
         isActive : formData.get("isActive") === "on",
-        favoriteSubjects : String(formData.get("name") ?? "")
+        favoriteSubjects : String(formData.get("favoriteSubjects") ?? "")
         .split(",")
         .map((subject) => subject.trim())
         .filter(Boolean)
