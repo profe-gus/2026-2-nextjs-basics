@@ -6,7 +6,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <h1 className="text-2xl text-white md:text-3xl">
+            <a href="/">
             <Brand />
+            </a>
           </h1>
           <p className="mt-1 text-sm text-slate-400">Manage your student&apos;s application</p>
         </div>

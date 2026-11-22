@@ -1,6 +1,7 @@
 "use server";
 import { ApiError } from "@/lib/api";
 import { login, register } from "@/lib/auth-api";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { createSession, deleteSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -27,11 +28,11 @@ export async function loginAction(_prev : AuthFormState, formData: FormData) {
             servidor, por favor contacte a su admin`}
     }
 
-    redirect("/students");
+    redirect(safeRedirectPath(formData.get("from")));
     
 }
 
-export async function registerAction(_prev : AuthFormState, formData: FormData) {
+export async function registerAction(_prev : AuthFormState, formData: FormData): Promise<AuthFormState> {
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const password = String(formData.get("password") ?? "");
     const fullName = String(formData.get("fullName") ?? "").trim();

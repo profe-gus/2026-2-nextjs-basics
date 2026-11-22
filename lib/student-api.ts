@@ -3,7 +3,9 @@ import { Grade, Student } from '../interfaces/student.interface';
 import { api } from './api';
 
 
-export type { Grade, Student}
+export type { Grade, Student};
+
+export type NewStudent = Omit<Student, "id" | "nickname" | "grades">;
 
 export async function getStudents(limit: number = 1000){
     "use cache";
@@ -24,4 +26,11 @@ export async function getStudent(term: string){
     }catch(error){
         throw error;
     }
+}
+
+export async function createStudent(student:NewStudent, token: string) {
+    const { data } = await api.post<Student>("/student", student, {
+        headers : { Authorization : `Bearer ${token}`}
+    });
+    return data;
 }

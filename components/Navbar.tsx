@@ -2,6 +2,7 @@
 import { Brand } from './Brand'
 import { NavLinks } from '@/interfaces/nav-links.interface'
 import { usePathname } from 'next/navigation'
+import { UserBadge } from './session/UserBadge'
 
 export const Navbar = ({links} : {links: NavLinks[]}) => {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export const Navbar = ({links} : {links: NavLinks[]}) => {
             {link.title}
           </a>
         )) : ""}
+        <UserBadge/>
         
       </nav>
   )

@@ -6,7 +6,10 @@ import { Suspense } from "react";
 import { Brand } from "../Brand";
 import { SidebarMenu } from "./SidebarMenu";
 import { SidebarMenuItem } from "./SidebarMenuItem";
-import { IoPeopleOutline, IoCheckmarkCircleOutline, IoWomanOutline } from "react-icons/io5";
+import { IoPeopleOutline, IoCheckmarkCircleOutline, IoPersonAddOutline } from "react-icons/io5";
+import { logoutAction } from "@/app/(auth)/actions";
+import { LogOutButton } from "../session/LogOutButton";
+import { UserBadge } from '../session/UserBadge';
 
 const menuItems: MenuItem[] = [
     {
@@ -14,6 +17,9 @@ const menuItems: MenuItem[] = [
     },
     {
         path: "/counter", icon: <IoCheckmarkCircleOutline />, title: "Contador", subtitle: "Ejemplo simple de SSR" 
+    },
+    {
+        path: "/students/new", icon: <IoPersonAddOutline />, title: "Nuevo estudiante", subtitle: "Crear nuevo estudiante" 
     },
     
 ];
@@ -40,6 +46,9 @@ md:hidden">
                     </Link>
                     <p className="text-sm text-slate-500">Administrador de estudiantes</p>
                 </div>
+                <div className="px-6 py-8">
+                    <UserBadge/>
+                </div>
                 <nav className="w-full px-6">
                     <Suspense
                         fallback={menuItems.map((item) => (
@@ -49,6 +58,10 @@ md:hidden">
                         <SidebarMenu items={menuItems} />
                     </Suspense>
                 </nav>
+
+                <div className="mt-auto px-6 py-6">
+                    <LogOutButton className="text-sm text-red-400 underline hover:text-white"/>
+                </div>
             </aside>
         </>
     );
